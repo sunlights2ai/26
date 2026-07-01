@@ -177,10 +177,26 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
 
 /* ===== SUPPORT VIEW ===== */
 .support-container {
-  display: flex; align-items: center; justify-content: center;
-  height: calc(100vh - 44px - 24px);
-  background: var(--bg);
+  display: flex; flex-direction: column; align-items: center;
+  height: calc(100vh - 44px - 24px); overflow-y: auto;
+  background: var(--bg); padding: 24px 16px;
 }
+.guide-card {
+  text-align: left; max-width: 520px; width: 100%;
+  padding: 32px 28px; margin-bottom: 24px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;
+}
+.guide-card h2 { font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 20px; text-align: center; }
+.guide-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-secondary); line-height: 1.7;
+}
+.guide-item:last-child { border-bottom: none; }
+.guide-item .gi-icon { font-size: 22px; flex-shrink: 0; margin-top: -1px; }
+.guide-item .gi-text { flex: 1; }
+.guide-item .gi-text strong { color: #f0c040; }
+.gi-highlight { color: #f0c040; font-weight: 600; }
 .support-card {
   text-align: center; max-width: 480px; padding: 48px 36px;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;
@@ -362,6 +378,27 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
 
 <!-- SUPPORT VIEW -->
 <div class="support-container" id="supportView" style="display:none;">
+  <!-- Usage Guide -->
+  <div class="guide-card">
+    <h2 data-i18n="guideTitle">💡 使用說明</h2>
+    <div class="guide-item">
+      <span class="gi-icon">🖱️</span>
+      <div class="gi-text" data-i18n-html="guide1"></div>
+    </div>
+    <div class="guide-item">
+      <span class="gi-icon">🌍</span>
+      <div class="gi-text" data-i18n-html="guide2"></div>
+    </div>
+    <div class="guide-item">
+      <span class="gi-icon">🇺🇳</span>
+      <div class="gi-text" data-i18n-html="guide3"></div>
+    </div>
+    <div class="guide-item">
+      <span class="gi-icon">🗺️</span>
+      <div class="gi-text" data-i18n-html="guide4"></div>
+    </div>
+  </div>
+  <!-- Support -->
   <div class="support-card">
     <div class="support-icon">❤️</div>
     <h2 data-i18n="supportTitle">支持創作者</h2>
@@ -389,6 +426,11 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
 const I18N = {
 'zh-TW':{
 title:'🏆 2026 世界盃淘汰賽',tabBracket:'🏟️ 對陣圖',tabSchedule:'📅 賽程列表',tabSupport:'❤️ 支持創作者',
+guideTitle:'💡 使用說明',
+guide1:'點擊<span class="gi-highlight">賽程列表中的比賽</span> → 在地圖上顯示該場比賽<span class="gi-highlight">球場</span> + 雙方<span class="gi-highlight">球隊酒店</span>位置，以及酒店到球場的<span class="gi-highlight">行軍距離</span>',
+guide2:'點擊地圖上的<span class="gi-highlight">球場標記</span> → 查看<span class="gi-highlight">當前天氣</span>與預報，以及該球場<span class="gi-highlight">即將舉行的比賽</span>',
+guide3:'點擊<span class="gi-highlight">國旗</span> → 查看球隊詳情：小組賽統計、已完賽淘汰賽（附比賽日天氣）、行軍距離、酒店資訊',
+guide4:'點擊地圖上的<span class="gi-highlight">酒店標記</span> → 查看球隊<span class="gi-highlight">大本營</span>詳細資訊與數據來源',
 liveBadge:'🔴 LIVE',timeNote:'⏰ 以下比賽時間均爲北京時間 (UTC+8)',
 legendCompleted:'已完賽',legendLive:'進行中',legendUpcoming:'即將',legendFinal:'決賽',
 supportTitle:'支持創作者',supportDesc1:'本站由獨立開發者用愛發電維護，致力於爲球迷提供沉浸式的世界盃可視化追蹤體驗。',
@@ -402,6 +444,8 @@ roundR32:'32強',roundR16:'16強',roundQF:'¼決賽',roundSF:'半決賽',roundTP
 groupStage:'小組賽',pending:'待定',ft:'FT',vs:'vs',loadingWeather:'加載天氣...',weatherNA:'天氣暫不可用',
 weatherFail:'天氣加載失敗',noHistWeather:'暫無歷史天氣數據',matchDayWeather:'比賽日天氣',
 sameStadiumBadge:'⭐ 下一場同場',hotelLabel:'球隊酒店',
+capacity:'容量',clickLoadWeather:'🌤️ 點擊加載天氣...',humidity:'濕度',forecastLabel:'預報',
+baseCampLabel:'大本營',sourcesLabel:'信源鏈接',officialHotel:'官方球隊酒店',
 preMatch:'賽前',dailySummary:'每日彙總',
 win:'勝',draw:'平',loss:'負', goalsFor:'進',goalsAgainst:'失',pts:'分',
 flightHours:'飛行',driveHours:'駕車',about:'約',hours:'小時',
@@ -416,6 +460,11 @@ supportBtnUrl:'https://ifdian.net/a/janvis',
 },
 'zh-CN':{
 title:'🏆 2026 世界杯淘汰赛',tabBracket:'🏟️ 对阵图',tabSchedule:'📅 赛程列表',tabSupport:'❤️ 支持创作者',
+guideTitle:'💡 使用说明',
+guide1:'点击<span class="gi-highlight">赛程列表中的比赛</span> → 在地图上显示该场比赛<span class="gi-highlight">球场</span> + 双方<span class="gi-highlight">球队酒店</span>位置，以及酒店到球场的<span class="gi-highlight">行军距离</span>',
+guide2:'点击地图上的<span class="gi-highlight">球场标记</span> → 查看<span class="gi-highlight">当前天气</span>与预报，以及该球场<span class="gi-highlight">即将举行的比赛</span>',
+guide3:'点击<span class="gi-highlight">国旗</span> → 查看球队详情：小组赛统计、已完赛淘汰赛（附比赛日天气）、行军距离、酒店资讯',
+guide4:'点击地图上的<span class="gi-highlight">酒店标记</span> → 查看球队<span class="gi-highlight">大本营</span>详细资讯与数据来源',
 liveBadge:'🔴 LIVE',timeNote:'⏰ 以下比赛时间均为北京时间 (UTC+8)',
 legendCompleted:'已完赛',legendLive:'进行中',legendUpcoming:'即将',legendFinal:'决赛',
 supportTitle:'支持创作者',supportDesc1:'本站由独立开发者用爱发电维护，致力于为球迷提供沉浸式的世界杯可视化追踪体验。',
@@ -429,6 +478,8 @@ roundR32:'32强',roundR16:'16强',roundQF:'¼决赛',roundSF:'半决赛',roundTP
 groupStage:'小组赛',pending:'待定',ft:'FT',vs:'vs',loadingWeather:'加载天气...',weatherNA:'天气暂不可用',
 weatherFail:'天气加载失败',noHistWeather:'暂无历史天气数据',matchDayWeather:'比赛日天气',
 sameStadiumBadge:'⭐ 下一场同场',hotelLabel:'球队酒店',
+capacity:'容量',clickLoadWeather:'🌤️ 点击加载天气...',humidity:'湿度',forecastLabel:'预报',
+baseCampLabel:'大本营',sourcesLabel:'信源链接',officialHotel:'官方球队酒店',
 preMatch:'赛前',dailySummary:'每日汇总',
 win:'胜',draw:'平',loss:'负', goalsFor:'进',goalsAgainst:'失',pts:'分',
 flightHours:'飞行',driveHours:'驾车',about:'约',hours:'小时',
@@ -443,6 +494,11 @@ supportBtnUrl:'https://ifdian.net/a/janvis',
 },
 'en':{
 title:'🏆 2026 World Cup Knockout',tabBracket:'🏟️ Bracket',tabSchedule:'📅 Schedule',tabSupport:'❤️ Support',
+guideTitle:'💡 How to Use',
+guide1:'Click a <span class="gi-highlight">match</span> in the schedule → shows the <span class="gi-highlight">stadium</span> + both teams\' <span class="gi-highlight">hotels</span> on the map, with <span class="gi-highlight">travel distances</span>',
+guide2:'Click a <span class="gi-highlight">stadium marker</span> on the map → view <span class="gi-highlight">current weather</span> & forecast, plus <span class="gi-highlight">upcoming matches</span> at that venue',
+guide3:'Click a <span class="gi-highlight">flag</span> → team details: group stage stats, played KO matches (with match-day weather), travel distances, hotel info',
+guide4:'Click a <span class="gi-highlight">hotel marker</span> on the map → view team <span class="gi-highlight">base camp</span> details and data sources',
 liveBadge:'🔴 LIVE',timeNote:'⏰ All times in Beijing Time (UTC+8)',
 legendCompleted:'Completed',legendLive:'Live',legendUpcoming:'Upcoming',legendFinal:'Final',
 supportTitle:'Support the Creator',supportDesc1:'This site is independently maintained by a solo developer, dedicated to providing an immersive World Cup visualization experience.',
@@ -456,6 +512,8 @@ roundR32:'Round of 32',roundR16:'Round of 16',roundQF:'Quarter-Final',roundSF:'S
 groupStage:'Group Stage',pending:'TBD',ft:'FT',vs:'vs',loadingWeather:'Loading weather...',weatherNA:'Weather unavailable',
 weatherFail:'Weather load failed',noHistWeather:'No historical weather data',matchDayWeather:'Match Day Weather',
 sameStadiumBadge:'⭐ Same Stadium Next',hotelLabel:'Team Hotel',
+capacity:'Capacity',clickLoadWeather:'🌤️ Click to load weather...',humidity:'Humidity',forecastLabel:'Forecast',
+baseCampLabel:'Base Camp',sourcesLabel:'Sources',officialHotel:'Official Team Hotel',
 preMatch:'Pre-Match',dailySummary:'Daily Summary',
 win:'W',draw:'D',loss:'L', goalsFor:'GF',goalsAgainst:'GA',pts:'Pts',
 flightHours:'flight',driveHours:'drive',about:'~',hours:'h',
@@ -519,6 +577,11 @@ function refreshI18n() {
     const text = T(key);
     if (text !== undefined) el.textContent = text;
   });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    const html = T(key);
+    if (html !== undefined) el.innerHTML = html;
+  });
   document.querySelectorAll('[data-i18n-href]').forEach(el => {
     el.href = T(el.getAttribute('data-i18n-href'));
   });
@@ -528,7 +591,7 @@ function refreshI18n() {
   const surl = document.getElementById('supportUrlText');
   if (surl) surl.textContent = T('supportUrl');
   // Reload weather on map (language changed, weather labels may change)
-  if (map) { updateMapMarkers(); }
+  if (map) { updateMapMarkers(); rebindVenuePopups(); clearMatchDisplay(); }
   updateStatusIndicators();
   renderBracketTree();
   if (document.getElementById('scheduleView').style.display !== 'none') renderSchedule();
@@ -1032,9 +1095,19 @@ function initMap(){
       }).addTo(map);
     }).catch(()=>{});
 
+function getVenuePopupContent(v) {
+  return `<div style="background:rgba(30,35,45,0.96);color:#e6edf3;font-family:-apple-system,sans-serif;padding:6px 8px;font-size:11px;border-radius:6px;min-width:200px;"><strong>${venueNameShort(v)}</strong><br><small>${v.name}</small><br>${venueLocation(v)}<br>${T('capacity')}: ${v.capacity.toLocaleString()}<br><span id="vp-weather-${v.id}" style="font-size:10px;color:#8b949e;">${T('clickLoadWeather')}</span><br><span id="vp-next-${v.id}" style="font-size:10px;color:#f0c040;"></span></div>`;
+}
+function rebindVenuePopups() {
+  VENUES.forEach(v => {
+    const mk = venueMarkers[v.id];
+    if (mk) mk.bindPopup(getVenuePopupContent(v), { className: 'venue-popup' });
+  });
+}
+
   VENUES.forEach(v=>{
     const marker=L.marker([v.lat,v.lng],{icon:createVenueMarker(v)}).addTo(map);
-    marker.bindPopup(`<div style="background:rgba(30,35,45,0.96);color:#e6edf3;font-family:-apple-system,sans-serif;padding:6px 8px;font-size:11px;border-radius:6px;min-width:200px;"><strong>${venueNameShort(v)}</strong><br><small>${v.name}</small><br>${venueLocation(v)}<br>容量: ${v.capacity.toLocaleString()}<br><span id="vp-weather-${v.id}" style="font-size:10px;color:#8b949e;">🌤️ 點擊加載天氣...</span><br><span id="vp-next-${v.id}" style="font-size:10px;color:#f0c040;"></span></div>`,{className:'venue-popup'});
+    marker.bindPopup(getVenuePopupContent(v),{className:'venue-popup'});
     marker.on('popupopen',async()=>{await loadVenuePopupInfo(v.id);});
     venueMarkers[v.id]=marker;
   });
@@ -1082,7 +1155,7 @@ async function loadVenuePopupInfo(vid){
     try{
       const data=await wttrFetch(v);
       let cw=data._source==='wttr'?parseWttrCurrent(data):parseOpenMeteoCurrent(data);
-      if(cw) wel.innerHTML=`🌡️ ${cw.temp}°C ${cw.desc} | 溼度 ${cw.hum}% | 💨 ${cw.wind}`;
+      if(cw) wel.innerHTML=`🌡️ ${cw.temp}°C ${cw.desc} | ${T('humidity')} ${cw.hum}% | 💨 ${cw.wind}`;
       else wel.innerHTML=T('weatherNA');
     }catch(e){wel.innerHTML=T('weatherFail');}
   }
@@ -1099,7 +1172,7 @@ async function loadVenuePopupInfo(vid){
         const data=await wttrFetch(v);
         const localDateStr=new Date(next.date+'T'+next.time+':00+08:00').toLocaleDateString('en-CA',{timeZone:v.tz});
         let fc=data._source==='wttr'?parseWttrForecast(data,localDateStr):parseOpenMeteoForecast(data,localDateStr);
-        if(fc) fcText=` | 預報: ${fc.desc} 🌡️${fc.low}°C~${fc.high}°C`;
+        if(fc) fcText=` | ${T('forecastLabel')}: ${fc.desc} 🌡️${fc.low}°C~${fc.high}°C`;
       }catch(e){}
       const hCN=teamName(teamDisplayName(next.home)),aCN=teamName(teamDisplayName(next.away));
       nel.innerHTML=`📅 ${T('nextMatch')}: ${next.date} ${next.time} ${T('beijingTime')} | 🕐 ${localDT}<br>⚽ ${roundName(next.round)}: ${hCN} vs ${aCN}${fcText}`;
@@ -1153,17 +1226,17 @@ function showMatchOnMap(mid){
     });
     const marker=L.marker([bc.lat,bc.lng],{icon}).addTo(map);
 
-    const hotelName = bc.hotel || 'Official Team Hotel';
+    const hotelName = bc.hotel || T('officialHotel');
     const sourcesHTML = TEAM_SOURCE_LINKS.map(s =>
       `<div style="padding:2px 0;"><a href="${s.url}" target="_blank" style="color:#58a6ff;text-decoration:none;font-size:10px;">• ${esc(s.label)}</a></div>`
     ).join('');
     marker.bindPopup(
       `<div style="min-width:180px;padding:10px 12px;font-family:-apple-system,sans-serif;font-size:11px;color:#e6edf3;line-height:1.5;">
         <div style="font-size:13px;font-weight:700;color:#f0c040;margin-bottom:6px;"><img src="${flagUrl(t.team)}" style="width:18px;height:12px;vertical-align:middle;margin-right:5px;">${esc(teamName(t.team))}</div>
-        <div style="margin-bottom:4px;"><span style="color:#8b949e;">📍 Base Camp:</span> ${esc(bc.city)}</div>
-        <div style="margin-bottom:4px;"><span style="color:#8b949e;">🏨 Hotel:</span> ${esc(hotelName)}</div>
+        <div style="margin-bottom:4px;"><span style="color:#8b949e;">📍 ${T('baseCampLabel')}:</span> ${esc(bc.city)}</div>
+        <div style="margin-bottom:4px;"><span style="color:#8b949e;">🏨 ${T('hotelLabel')}:</span> ${esc(hotelName)}</div>
         <div style="margin-top:8px;padding-top:6px;border-top:1px solid #30363d;font-size:10px;color:#8b949e;">
-          信源鏈接:<br>
+          ${T('sourcesLabel')}:<br>
           ${sourcesHTML}
         </div>
       </div>`,
@@ -1354,7 +1427,7 @@ async function showTeamDetail(team){
       html+=`<div class="ticket-card">
         <div class="tc-header">🎫 ${roundName(m.round)} · ${m.date} ${m.time} ${T('beijingTime')}${isResolved?` · vs ${teamName(opp)}`:''}</div>
         <div class="tc-route">
-          <div class="tc-from"><div class="tc-city">${bc.city.split(',')[0]}</div><div class="tc-sub">🏨 球隊酒店 · ${bc.city}</div></div>
+          <div class="tc-from"><div class="tc-city">${bc.city.split(',')[0]}</div><div class="tc-sub">🏨 ${T('hotelLabel')} · ${bc.city}</div></div>
           <div class="tc-arrow">━▶</div>
           <div class="tc-to"><div class="tc-city">${venue.city}</div><div class="tc-sub">🏟️ ${venueNameShort(venue)}</div></div>
         </div>
@@ -1384,7 +1457,7 @@ async function showTeamDetail(team){
           <span class="pm-date">${m.date} ${m.time} ${T('beijingTime')}</span>
         </div>
         <div class="pm-result"><span>vs ${esc(teamName(opp))}</span><span class="pm-score ${result}">${our} - ${their}</span></div>
-        <div class="pm-weather" id="pmw-${m.mid}"><span class="spinner"></span> 加載天氣...</div>
+        <div class="pm-weather" id="pmw-${m.mid}"><span class="spinner"></span> ${T('loadingWeather')}</div>
         <div class="pm-venue" style="${sameStadium?'color:#f0c040;font-weight:600;':''}">🏟️ ${venue?venueNameShort(venue):''} | ${venue?venueLocation(venue):''}${sameStadium?' <span class="same-stadium-badge">'+T('sameStadiumBadge')+'</span>':''}</div>
       </div>`;
     });
