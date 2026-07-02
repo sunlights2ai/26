@@ -1166,33 +1166,7 @@ async function loadVenuePopupInfo(vid){
   const hasUpcoming=upcomingMatches.length>0;
   const allCompleted=upcomingMatches.length===0&&completedMatches.length>0;
 
-  // Weather - only show if venue has upcoming matches within 3 days
-  const wel=document.getElementById('vp-weather-'+vid);
-  if(wel){
-    if(allCompleted){
-      // All matches completed: don't show weather
-      wel.innerHTML=T('noHistWeather');
-    }else if(hasUpcoming){
-      // Has upcoming matches: show weather if next match within 3 days
-      const next=upcomingMatches.sort((a,b)=>a.date.localeCompare(b.date))[0];
-      const nextKickoff=new Date(next.date+'T'+next.time+':00+08:00');
-      const diffDays=(nextKickoff-Date.now())/(86400000);
-      if(diffDays<3){
-        try{
-          const data=await wttrFetch(v);
-          let cw=data._source==='wttr'?parseWttrCurrent(data):parseOpenMeteoCurrent(data);
-          if(cw) wel.innerHTML=`🌡️ ${cw.temp}°C ${cw.desc} | ${T('humidity')} ${cw.hum}% | 💨 ${cw.wind}`;
-          else wel.innerHTML=T('weatherNA');
-        }catch(e){wel.innerHTML=T('weatherFail');}
-      }else{
-        wel.innerHTML=T('weatherNA');
-      }
-    }else{
-      wel.innerHTML=T('weatherNA');
-    }
-  }
-
-  // Next match at this venue
+  // Next match at this venue (no weather in venue popup)
   const nel=document.getElementById('vp-next-'+vid);
   if(nel){
     if(allCompleted){
@@ -1225,10 +1199,12 @@ function clearMatchDisplay(){
   if(currentArrowLayer){currentArrowLayer.remove();currentArrowLayer=null;}
   // Clear active class from all schedule cards
   document.querySelectorAll('.match-card.active-match').forEach(el=>el.classList.remove('active-match'));
+  // Restore venue popups to default (no match info)
+  rebindVenuePopups();
   fitAllStadiums();
 }
 
-function showMatchOnMap(mid){
+async function showMatchOnMap(mid){
   clearMatchDisplay();
   currentActiveMatch=mid;
 
@@ -1285,11 +1261,50 @@ function showMatchOnMap(mid){
   // Draw gradient arrows from hotels to stadium
   drawGradientArrows(teamsToShow,venue);
 
-  // Open venue popup + move map to venue
+  // Build match info popup and rebind venue marker
   const vmarker=venueMarkers[venue.id];
   if(vmarker){
+    const hCN=teamName(teamDisplayName(m.home)),aCN=teamName(teamDisplayName(m.away));
+    const localDT=bjToLocalDateTime(m.date,m.time,venue.tz);
+    const roundLabel=roundName(m.round);
+    let scoreLine='',forecastLine='';
+
+    if(m.status==='completed'){
+      const penStr=m.pen?` (${T('penalty')}: ${m.pen})`:'';
+      scoreLine=`<div style="font-size:13px;font-weight:700;color:#3fb950;">${hCN} ${m.hs}-${m.as} ${aCN}${penStr}</div>`;
+    }else if(m.status==='live'){
+      scoreLine=`<div style="font-size:13px;font-weight:700;color:#f0883e;">🔴 ${T('live')}: ${hCN} ${m.hs!=null?m.hs:'-'}-${m.as!=null?m.as:'-'} ${aCN}</div>`;
+    }else{
+      scoreLine=`<div style="font-size:13px;font-weight:700;color:#f0c040;">${hCN} vs ${aCN}</div>`;
+      // Forecast for upcoming matches within 3 days
+      const kickoff=new Date(m.date+'T'+m.time+':00+08:00');
+      const diffDays=(kickoff-Date.now())/(86400000);
+      if(diffDays>=0&&diffDays<3){
+        try{
+          const data=await wttrFetch(venue);
+          const localDateStr=kickoff.toLocaleDateString('en-CA',{timeZone:venue.tz});
+          let fc=data._source==='wttr'?parseWttrForecast(data,localDateStr):parseOpenMeteoForecast(data,localDateStr);
+          if(fc) forecastLine=`<div style="font-size:10px;color:#f0c040;">${T('matchDayWeather')}: ${fc.desc} 🌡️${fc.low}°C~${fc.high}°C${fc.precip!=null?' 💧'+fc.precip+'%':''}</div>`;
+        }catch(e){}
+      }
+    }
+
+    const matchPopupHTML=`<div style="background:rgba(30,35,45,0.96);color:#e6edf3;font-family:-apple-system,sans-serif;padding:6px 8px;font-size:11px;border-radius:6px;min-width:220px;">
+      <strong>${venueNameShort(venue)}</strong><br>
+      <small>${venue.name}</small><br>
+      ${venueLocation(venue)}<br>
+      ${T('capacity')}: ${venue.capacity.toLocaleString()}
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #30363d;">
+        <div style="color:#f0c040;margin-bottom:2px;">⚽ ${roundLabel}</div>
+        ${scoreLine}
+        <div style="font-size:10px;color:#8b949e;margin-top:2px;">📅 ${m.date} ${m.time} ${T('beijingTime')} | 🕐 ${localDT}</div>
+        ${forecastLine}
+      </div>
+    </div>`;
+
+    vmarker.unbindPopup();
+    vmarker.bindPopup(matchPopupHTML,{className:'venue-popup'});
     vmarker.openPopup();
-    loadVenuePopupInfo(venue.id);
   }
   map.setView([venue.lat,venue.lng],5,{animate:true,duration:0.5});
 }
