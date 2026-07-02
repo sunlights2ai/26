@@ -1045,6 +1045,13 @@ function switchTab(tab){
   else {
     const nearest=KNOCKOUT_MATCHES.find(m=>m.status!=='completed');
     renderSchedule(nearest?nearest.mid:null);
+    // Scroll to the earliest uncompleted match
+    if(nearest){
+      setTimeout(()=>{
+        const el=document.getElementById(`sched-${nearest.mid}`);
+        if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+      },100);
+    }
     if(!map){initMap();}
     else{map.invalidateSize();}
     setTimeout(()=>{
@@ -1199,8 +1206,6 @@ function clearMatchDisplay(){
   if(currentArrowLayer){currentArrowLayer.remove();currentArrowLayer=null;}
   // Clear active class from all schedule cards
   document.querySelectorAll('.match-card.active-match').forEach(el=>el.classList.remove('active-match'));
-  // Restore venue popups to default (no match info)
-  rebindVenuePopups();
   fitAllStadiums();
 }
 
@@ -1302,8 +1307,12 @@ async function showMatchOnMap(mid){
       </div>
     </div>`;
 
-    vmarker.unbindPopup();
-    vmarker.bindPopup(matchPopupHTML,{className:'venue-popup'});
+    const popup=vmarker.getPopup();
+    if(popup){
+      popup.setContent(matchPopupHTML);
+    }else{
+      vmarker.bindPopup(matchPopupHTML,{className:'venue-popup'});
+    }
     vmarker.openPopup();
   }
   map.setView([venue.lat,venue.lng],5,{animate:true,duration:0.5});
