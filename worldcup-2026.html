@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 2026 World Cup Knockout Visualization v3.2 -->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -1893,8 +1894,8 @@ async function initApp(){
   // 4. Bracket zoom + pan (once)
   initBracketZoom();
 
-  // 5. Start auto-poll every 60s
-  setInterval(autoPoll, 60000);
+  // 5. Start auto-poll every 10 min
+  setInterval(autoPoll, 600000);
 
   // Redraw bracket lines on resize (browser zoom)
   let resizeTimer;
