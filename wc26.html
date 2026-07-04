@@ -1880,26 +1880,15 @@ function formatLastUpdated(lastUpdatedStr, lang) {
 }
 
 function calculateNextUpdateTime() {
-  // Find earliest future data-update trigger across all non-completed matches.
-  // Triggers: pre-match (kickoff − 5 min) and post-match (kickoff + 2 h).
-  // Postponed matches are skipped — we don't know the new time.
+  // 网站自带 ESPN 实时轮询（每2分钟），下次更新 = 下一场未完赛的开赛时间
   const now = new Date();
   let candidates = [];
 
   KNOCKOUT_MATCHES.forEach(m => {
-    if (m.status === 'completed' || m.status === 'postponed') return;
+    if (m.status === 'completed') return;
     const kickoff = new Date(m.date + 'T' + m.time + ':00+08:00');
     if (isNaN(kickoff.getTime())) return;
-
-    // Pre-match check: 5 min before kickoff (only if still upcoming)
-    if (m.status === 'upcoming') {
-      const pre = new Date(kickoff.getTime() - 5 * 60000);
-      if (pre > now) candidates.push(pre);
-    }
-
-    // Post-match check: 2 hours after kickoff (live or upcoming)
-    const post = new Date(kickoff.getTime() + 2 * 3600000);
-    if (post > now) candidates.push(post);
+    if (kickoff > now) candidates.push(kickoff);
   });
 
   if (candidates.length === 0) return null;
@@ -1908,7 +1897,8 @@ function calculateNextUpdateTime() {
 }
 
 function showUpdateTime() {
-  const lu = KNOCKOUT_MATCHES._lastUpdated || _lastFetchedUpdated;
+  // Use ESPN update time if more recent than JSON
+  const lu = _espnUpdated || KNOCKOUT_MATCHES._lastUpdated || _lastFetchedUpdated;
   document.getElementById('updateTime').textContent = formatLastUpdated(lu, currentLang);
 
   const next = calculateNextUpdateTime();
@@ -1922,7 +1912,18 @@ function showUpdateTime() {
 
 async function autoPoll() {
   const latestUpdated = await loadData();
-  if (!hasDataChanged(latestUpdated)) return;
+  let dataChanged = hasDataChanged(latestUpdated);
+
+  // ESPN live data
+  const espnData = await fetchESPN();
+  if (espnData) {
+    const espnChanged = applyESPNData(espnData);
+    if (espnChanged) dataChanged = true;
+  }
+  // Auto weather snapshot
+  await autoWeatherSnapshot();
+
+  if (!dataChanged) return;
   console.log('📡 数据已更新，刷新页面');
   applyAutoDetectLive();
   updateStatusIndicators();
@@ -1947,6 +1948,166 @@ function updateStatusIndicators(){
   const hasLive=KNOCKOUT_MATCHES.some(m=>m.status==='live');
   document.getElementById('liveBadge').style.display=hasLive?'inline':'none';
   showUpdateTime();
+}
+
+// ==================== ESPN LIVE DATA (替代 WorkBuddy 赛后自动化) ====================
+const ESPN_URL='https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+let _espnLastFetch=0,_espnCache=null,_espnUpdated=null;
+
+async function fetchESPN(){
+  if(_espnCache&&Date.now()-_espnLastFetch<120000)return _espnCache; // 2min cache
+  try{
+    const resp=await fetch(ESPN_URL,{signal:AbortSignal.timeout(10000)});
+    if(!resp.ok)return null;
+    const data=await resp.json();
+    _espnCache=data;_espnLastFetch=Date.now();
+    return data;
+  }catch(e){console.log('ESPN fetch failed:',e.message);return null;}
+}
+
+function _normTeam(s){return s.toLowerCase().replace(/[^a-z]/g,'');}
+const TEAM_ALIAS={
+  'ivorycoast':'ivorycoast','ctedivoire':'ivorycoast','cotedivoire':'ivorycoast',
+  'southkorea':'southkorea','korearepublic':'southkorea',
+  'iriran':'iran','bosniaherzegovina':'bosniaherzegovina',
+  'unitedstates':'unitedstates','usa':'unitedstates',
+  'capeverde':'capeverde','caboverde':'capeverde',
+  'drcongo':'drcongo','congobrazzaville':'congo',
+};
+function normTeam(s){const n=_normTeam(s);return TEAM_ALIAS[n]||n;}
+
+function findESPNEvent(espnData,match){
+  if(!espnData?.events)return null;
+  const homeName=getResolvedTeamName(match.home);
+  const awayName=getResolvedTeamName(match.away);
+  if(!homeName||!awayName)return null;
+  const hN=normTeam(homeName),aN=normTeam(awayName);
+  return espnData.events.find(e=>{
+    const comps=e.competitions?.[0]?.competitors||[];
+    if(comps.length<2)return false;
+    const names=comps.map(c=>normTeam(c.team?.displayName||''));
+    return names.includes(hN)&&names.includes(aN);
+  });
+}
+
+function applyESPNData(espnData){
+  if(!espnData?.events)return false;
+  let changed=false;
+  KNOCKOUT_MATCHES.forEach(m=>{
+    // Skip if already completed with scores
+    if(m.status==='completed'&&m.hs!==null&&m.as!==null)return;
+    const event=findESPNEvent(espnData,m);
+    if(!event)return;
+    const comp=event.competitions?.[0];
+    if(!comp)return;
+    const state=comp.status?.type?.state; // 'pre','in','post'
+    const comps=comp.competitors||[];
+    const espnHome=comps.find(c=>c.homeAway==='home');
+    const espnAway=comps.find(c=>c.homeAway==='away');
+    if(!espnHome||!espnAway)return;
+
+    const homeName=getResolvedTeamName(m.home);
+    const awayName=getResolvedTeamName(m.away);
+    // ESPN home might not be our home — map correctly
+    const espnHomeIsOurHome=normTeam(espnHome.team.displayName)===normTeam(homeName);
+    const ourHS=espnHomeIsOurHome?parseInt(espnHome.score):parseInt(espnAway.score);
+    const ourAS=espnHomeIsOurHome?parseInt(espnAway.score):parseInt(espnHome.score);
+
+    if(state==='post'){
+      m.hs=ourHS;m.as=ourAS;m.status='completed';
+      // Winner
+      const espnWinnerHome=espnHome.winner;
+      if(ourHS>ourAS)m.winner=homeName;
+      else if(ourAS>ourHS)m.winner=awayName;
+      else m.winner=espnWinnerHome?homeName:awayName; // Draw → penalty winner
+      // Penalty score
+      const pens=(comp.details||[]).filter(d=>d.penaltyKick);
+      if(pens.length>0&&ourHS===ourAS){
+        let hp=0,ap=0;
+        const hId=espnHome.team.id,aId=espnAway.team.id;
+        pens.forEach(p=>{
+          if(p.type?.text==='Penalty - Scored'){
+            if(String(p.team?.id)===String(hId))hp++;
+            else if(String(p.team?.id)===String(aId))ap++;
+          }
+        });
+        if(hp>0||ap>0){
+          m.pen=espnHomeIsOurHome?`${hp}-${ap}`:`${ap}-${hp}`;
+        }
+      }
+      changed=true;
+      console.log(`⚽ ESPN: #${m.mid} ${homeName} ${ourHS}-${ourAS} ${awayName} ${m.pen?'(pen:'+m.pen+')':''}`);
+    }else if(state==='in'){
+      m.status='live';m.hs=ourHS;m.as=ourAS;changed=true;
+    }else if(state==='pre'){
+      // Check postponement — if ESPN date differs by >2h
+      const espnDate=new Date(event.date);
+      const ourDate=new Date(m.date+'T'+m.time+':00+08:00');
+      const diffH=Math.abs(espnDate-ourDate)/3600000;
+      if(diffH>2){
+        const bj=new Date(espnDate.getTime()+8*3600000);
+        m.date=bj.toISOString().substring(0,10);
+        m.time=bj.toISOString().substring(11,16);
+        m.status='upcoming';changed=true;
+        console.log(`⏰ ESPN: #${m.mid} 推迟 → ${m.date} ${m.time}`);
+      }
+    }
+  });
+  if(changed)_espnUpdated=new Date().toISOString();
+  return changed;
+}
+
+// ==================== AUTO WEATHER SNAPSHOT (替代赛前自动化) ====================
+async function autoWeatherSnapshot(){
+  const now=Date.now();
+  for(const m of KNOCKOUT_MATCHES){
+    if(m.status==='completed')continue;
+    const kickoff=new Date(m.date+'T'+m.time+':00+08:00');
+    const diffMin=(kickoff-now)/60000;
+    // 15min before to 30min after kickoff
+    if(diffMin>30||diffMin<-30)continue;
+    const key=`weather:${m.mid}`;
+    if(localStorage.getItem(key))continue;
+    const venue=VENUES.find(v=>v.id===m.venue);
+    if(!venue)continue;
+    try{
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${venue.lat.toFixed(4)}&longitude=${venue.lng.toFixed(4)}&current_weather=true&hourly=relative_humidity_2m&timezone=${encodeURIComponent(venue.tz)}&forecast_days=1`;
+      const resp=await fetch(url,{signal:AbortSignal.timeout(8000)});
+      if(!resp.ok)continue;
+      const data=await resp.json();
+      const cw=data.current_weather;
+      if(!cw||cw.temperature==null)continue;
+      let hum=null;
+      if(data.hourly?.time&&data.hourly?.relative_humidity_2m){
+        const cwHour=cw.time.substring(0,13);
+        for(let i=0;i<data.hourly.time.length;i++){
+          if(data.hourly.time[i].substring(0,13)===cwHour){hum=Math.round(data.hourly.relative_humidity_2m[i]);break;}
+        }
+      }
+      const wm=I18N[currentLang]?.weather||I18N['zh-TW'].weather;
+      const snap={temp:Math.round(cw.temperature),hum,wind:Math.round(cw.windspeed)+'km/h',desc:wm[cw.weathercode]||'',code:cw.weathercode,time:new Date().toISOString()};
+      localStorage.setItem(key,JSON.stringify(snap));
+      m.weather=snap;
+      console.log(`🌤️ 天气快照: #${m.mid} ${snap.temp}°C ${snap.desc}`);
+    }catch(e){}
+  }
+}
+
+// ==================== FAST ESPN POLL (2 min) ====================
+async function espnPoll(){
+  // Only if there are non-completed matches
+  const hasPending=KNOCKOUT_MATCHES.some(m=>m.status!=='completed'||m.hs===null);
+  if(!hasPending)return;
+  const espnData=await fetchESPN();
+  if(!espnData)return;
+  const changed=applyESPNData(espnData);
+  await autoWeatherSnapshot();
+  if(changed){
+    applyAutoDetectLive();updateStatusIndicators();renderBracketTree();updateMapMarkers();
+    if(document.getElementById('scheduleView').style.display!=='none')renderSchedule();
+    if(document.getElementById('bracketView').style.display!=='none')setTimeout(drawBracketLines,200);
+    showUpdateTime();
+  }
 }
 
 // ==================== INIT ====================
@@ -2045,24 +2206,32 @@ async function initApp(){
   // 1. Load data (fetch from server, fall back to inline)
   const initUpdated = await loadData();
   if (initUpdated) _lastFetchedUpdated = initUpdated;
-  showUpdateTime();
 
-  // 2. Auto-detect live matches
+  // 2. ESPN live data (替代赛后自动化)
+  const espnData = await fetchESPN();
+  if (espnData) applyESPNData(espnData);
+
+  // 3. Auto weather snapshot (替代赛前自动化)
+  await autoWeatherSnapshot();
+
+  // 4. Show time + auto-detect live
+  showUpdateTime();
   applyAutoDetectLive();
 
-  // 3. Apply initial language
+  // 5. Apply initial language
   refreshI18n();
 
-  // 4. Initial render
+  // 6. Initial render
   renderBracketTree();
   updateStatusIndicators();
   updateMapMarkers();
 
-  // 4. Bracket zoom + pan (once)
+  // 7. Bracket zoom + pan (once)
   initBracketZoom();
 
-  // 5. Start auto-poll every 10 min
+  // 8. Start polling: JSON every 10min, ESPN every 2min
   setInterval(autoPoll, 600000);
+  setInterval(espnPoll, 120000);
 
   // Redraw bracket lines on resize (browser zoom)
   let resizeTimer;
