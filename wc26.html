@@ -22,6 +22,7 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
   background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+  display: flex; flex-direction: column; padding-bottom: 24px;
 }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--scrollbar-bg); border-radius: 3px; }
@@ -31,7 +32,7 @@ body {
 .header {
   height: 44px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 12px; z-index: 1000; position: relative;
-  min-height: 44px;
+  min-height: 44px; flex-shrink: 0;
 }
 .header .title { font-size: 15px; font-weight: 700; color: var(--accent); }
 .header .meta { margin-left: auto; font-size: 10px; color: var(--text-secondary); display: flex; align-items: center; gap: 12px; }
@@ -54,7 +55,7 @@ body {
 .bracket-fullscreen {
   display: flex; flex-direction: column; position: relative;
   padding: 8px 24px 12px 24px; min-height: 0;
-  height: calc(100vh - 44px - 24px);
+  flex: 1;
 }
 
 /* ===== DISCLAIMER BAR ===== */
@@ -138,7 +139,7 @@ body {
 /* ===== SCHEDULE + MAP SPLIT ===== */
 .split-container {
   display: flex; overflow: hidden;
-  height: calc(100vh - 44px - 24px);
+  flex: 1;
 }
 .schedule-panel {
   width: 360px; min-width: 320px; overflow-y: auto; overflow-x: hidden;
@@ -193,7 +194,7 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
 /* ===== SUPPORT VIEW ===== */
 .support-container {
   display: flex; flex-direction: column; align-items: center;
-  height: calc(100vh - 44px - 24px); overflow-y: auto;
+  flex: 1; overflow-y: auto;
   background: var(--bg); padding: 24px 16px;
 }
 .guide-card {
@@ -370,9 +371,11 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
   .disclaimer-bar { height: 18px; }
   .disclaimer-track span { font-size: 8px; }
 
+  /* Body padding for disclaimer bar */
+  body { padding-bottom: 18px; }
+
   /* Bracket view */
   .bracket-fullscreen {
-    height: calc(100vh - 62px - 18px);
     padding: 4px 0 4px 0;
   }
   .bt-time-note { font-size: 9px; padding: 4px 0 2px 0; }
@@ -391,7 +394,6 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
   /* Schedule + Map split → stacked */
   .split-container {
     flex-direction: column;
-    height: calc(100vh - 62px - 18px);
   }
   .schedule-panel {
     width: 100%; min-width: 0; max-height: 42%;
@@ -416,7 +418,7 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
   .modal-header .flag-lg { width: 26px; height: 18px; }
 
   /* Support view */
-  .support-container { height: calc(100vh - 62px - 18px); padding: 16px 10px; }
+  .support-container { padding: 16px 10px; }
   .guide-card { padding: 20px 16px; }
   .guide-card h2 { font-size: 17px; }
   .guide-item { font-size: 11px; padding: 8px 0; }
@@ -1945,7 +1947,7 @@ const ESPN_URL='https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/
 let _espnLastFetch=0,_espnCache=null,_espnUpdated=null;
 
 async function fetchESPN(){
-  if(_espnCache&&Date.now()-_espnLastFetch<120000)return _espnCache; // 2min cache
+  if(_espnCache&&Date.now()-_espnLastFetch<60000)return _espnCache; // 1min cache
   try{
     const resp=await fetch(ESPN_URL,{signal:AbortSignal.timeout(10000)});
     if(!resp.ok)return null;
@@ -2090,13 +2092,15 @@ async function espnPoll(){
   if(!hasPending)return;
   const espnData=await fetchESPN();
   if(!espnData)return;
+  _espnUpdated=new Date().toISOString(); // mark fetch time regardless of data change
   const changed=applyESPNData(espnData);
   await autoWeatherSnapshot();
+  // Always update display time so user sees polling is active
+  showUpdateTime();
   if(changed){
     applyAutoDetectLive();updateStatusIndicators();renderBracketTree();updateMapMarkers();
     if(document.getElementById('scheduleView').style.display!=='none')renderSchedule();
     if(document.getElementById('bracketView').style.display!=='none')setTimeout(drawBracketLines,200);
-    showUpdateTime();
   }
 }
 
@@ -2219,9 +2223,9 @@ async function initApp(){
   // 7. Bracket zoom + pan (once)
   initBracketZoom();
 
-  // 8. Start polling: JSON every 10min, ESPN every 2min
+  // 8. Start polling: JSON every 10min, ESPN every 1min
   setInterval(autoPoll, 600000);
-  setInterval(espnPoll, 120000);
+  setInterval(espnPoll, 60000);
 
   // Redraw bracket lines on resize (browser zoom)
   let resizeTimer;
