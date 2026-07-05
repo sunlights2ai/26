@@ -21,8 +21,9 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
-  background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+  background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
   display: flex; flex-direction: column; padding-bottom: 24px;
+  overscroll-behavior: none; -webkit-overflow-scrolling: auto;
 }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--scrollbar-bg); border-radius: 3px; }
@@ -79,6 +80,7 @@ body {
 }
 .bracket-scroll {
   flex: 1; width: 100%; overflow: hidden; min-height: 0; cursor: grab; position: relative;
+  overscroll-behavior: contain;
 }
 .bracket-scroll.grabbing { cursor: grabbing; }
 /* Zoom controls (floating buttons) */
@@ -144,6 +146,7 @@ body {
 .schedule-panel {
   width: 360px; min-width: 320px; overflow-y: auto; overflow-x: hidden;
   background: var(--bg-panel); border-right: 1px solid var(--border);
+  overscroll-behavior: contain;
 }
 .schedule-panel .day-header {
   padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--accent);
@@ -196,6 +199,7 @@ img.leaflet-tile { filter: invert(0.92) hue-rotate(180deg) brightness(0.45) cont
   display: flex; flex-direction: column; align-items: center;
   flex: 1; overflow-y: auto;
   background: var(--bg); padding: 24px 16px;
+  overscroll-behavior: contain;
 }
 .guide-card {
   text-align: left; max-width: 520px; width: 100%;
